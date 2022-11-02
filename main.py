@@ -1,14 +1,11 @@
-from turtle import forward
 import pandas
 import torch
 import torch.nn as nn
 from torch_geometric.loader import DataLoader
-import torch.nn.functional as F
 from torch_geometric.datasets import MoleculeNet
 
-from torch_geometric.nn import GCNConv, TopKPooling, global_mean_pool, global_max_pool
+from torch_geometric.nn import GCNConv, global_mean_pool, global_max_pool
 import matplotlib.pyplot as plt
-
 
 N_GRAPH_PER_EDGE = 64
 Epochs = 100
@@ -27,8 +24,7 @@ test_loader = DataLoader(
 class GraphNeuralNetwork(nn.Module):
     def __init__(self, input_size, hidden_size) -> None:
         super().__init__()
-        #
-        # torch.manual_seed()
+        torch.manual_seed(41)
 
         self.g1 = GCNConv(in_channels=input_size, out_channels=hidden_size)
         self.g2 = GCNConv(in_channels=hidden_size, out_channels=hidden_size)
@@ -49,8 +45,8 @@ class GraphNeuralNetwork(nn.Module):
             ],
             dim=1,
         )
-        out = self.l1(keep_going)
-        return out, keep_going
+        keep_going = self.l1(keep_going)
+        return keep_going
 
 
 # print(model)
@@ -63,7 +59,8 @@ losses = []
 
 for epoch in range(Epochs):
     for i, data in enumerate(train_loader):
-        output, hidden = model(data.x.float(), data.edge_index, data.batch)
+
+        output = model(data.x.float(), data.edge_index, data.batch)
         loss = loss_fun(output, data.y)
 
         losses.append(loss)
@@ -89,13 +86,13 @@ plt.show()
 with torch.no_grad():
 
     for i, data in enumerate(test_loader):
-        output, hidden = model(data.x.float(), data.edge_index, data.batch)
+        output = model(data.x.float(), data.edge_index, data.batch)
         df = pandas.DataFrame()
         df["original"] = data.y.tolist()
         df["predicted"] = output.tolist()
 
-df["original"] = df['original'].apply(lambda item:item[0])
-df["predicted"] = df['predicted'].apply(lambda item:item[0])
-   
+df["original"] = df["original"].apply(lambda item: item[0])
+df["predicted"] = df["predicted"].apply(lambda item: item[0])
+
 
 print(df.head())
